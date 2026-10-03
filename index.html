@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="theme-color" content="#f4f6fb">
+	<title>Relógio em tempo real</title>
+	<style>
+		:root {
+			color-scheme: light;
+			--background: #f4f6fb;
+			--card: #ffffff;
+			--text: #182033;
+			--muted: #758099;
+			--accent: #5865f2;
+			--border: #e5e8f0;
+			--shadow: 0 24px 70px rgba(39, 51, 89, .12);
+		}
+
+		* { box-sizing: border-box; }
+
+		body {
+			min-height: 100vh;
+			margin: 0;
+			display: grid;
+			place-items: center;
+			padding: 24px;
+			color: var(--text);
+			background: radial-gradient(circle at 15% 15%, #e4e8ff 0, transparent 34%),
+									radial-gradient(circle at 85% 85%, #e4f4ff 0, transparent 34%), var(--background);
+			font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+			transition: background .25s, color .25s;
+		}
+
+		body.dark {
+			color-scheme: dark;
+			--background: #10131d;
+			--card: #1b2030;
+			--text: #f2f4ff;
+			--muted: #a2abc2;
+			--accent: #9ba4ff;
+			--border: #30364a;
+			--shadow: 0 24px 70px rgba(0, 0, 0, .35);
+			background: radial-gradient(circle at 15% 15%, #24294a 0, transparent 35%),
+									radial-gradient(circle at 85% 85%, #173344 0, transparent 34%), var(--background);
+		}
+
+		.clock-card {
+			width: min(100%, 620px);
+			padding: clamp(28px, 7vw, 56px);
+			text-align: center;
+			background: var(--card);
+			border: 1px solid var(--border);
+			border-radius: 28px;
+			box-shadow: var(--shadow);
+			transition: background .25s, border-color .25s;
+		}
+
+		.top-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 16px;
+			margin-bottom: clamp(42px, 9vw, 72px);
+		}
+
+		.eyebrow {
+			margin: 0;
+			color: var(--muted);
+			font-size: .78rem;
+			font-weight: 700;
+			letter-spacing: .16em;
+			text-transform: uppercase;
+		}
+
+		.theme-toggle {
+			display: inline-flex;
+			align-items: center;
+			gap: 9px;
+			padding: 10px 14px;
+			color: var(--text);
+			background: transparent;
+			border: 1px solid var(--border);
+			border-radius: 999px;
+			font: inherit;
+			font-size: .88rem;
+			cursor: pointer;
+		}
+
+		.theme-toggle:hover { background: var(--border); }
+		.theme-toggle:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+		.time {
+			margin: 0;
+			font-size: clamp(4rem, 16vw, 7.5rem);
+			font-variant-numeric: tabular-nums;
+			font-weight: 650;
+			letter-spacing: -.075em;
+			line-height: 1;
+		}
+
+		.date {
+			margin: 20px 0 0;
+			color: var(--muted);
+			font-size: clamp(1rem, 3vw, 1.2rem);
+			font-weight: 500;
+			text-transform: capitalize;
+		}
+
+		.status {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			margin-top: 42px;
+			color: var(--muted);
+			font-size: .83rem;
+		}
+
+		.status::before {
+			width: 8px;
+			height: 8px;
+			content: "";
+			background: #42c98a;
+			border-radius: 50%;
+			box-shadow: 0 0 0 4px rgba(66, 201, 138, .12);
+		}
+	</style>
+</head>
+<body>
+	<main class="clock-card" aria-label="Relógio em tempo real">
+		<div class="top-row">
+			<p class="eyebrow">Seu horário local</p>
+			<button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false">
+				<span id="themeIcon" aria-hidden="true">🌙</span>
+				<span id="themeLabel">Modo escuro</span>
+			</button>
+		</div>
+		<time class="time" id="clock">00:00:00</time>
+		<p class="date" id="date"></p>
+		<div class="status">Atualizado em tempo real</div>
+	</main>
+
+	<script>
+		const clock = document.getElementById('clock');
+		const date = document.getElementById('date');
+		const themeToggle = document.getElementById('themeToggle');
+		const themeIcon = document.getElementById('themeIcon');
+		const themeLabel = document.getElementById('themeLabel');
+		const themeColor = document.querySelector('meta[name="theme-color"]');
+
+		function setTheme(isDark) {
+			document.body.classList.toggle('dark', isDark);
+			themeToggle.setAttribute('aria-pressed', String(isDark));
+			themeIcon.textContent = isDark ? '☀️' : '🌙';
+			themeLabel.textContent = isDark ? 'Modo claro' : 'Modo escuro';
+			themeColor.content = isDark ? '#10131d' : '#f4f6fb';
+			try {
+				localStorage.setItem('relogio-tema', isDark ? 'escuro' : 'claro');
+			} catch (error) {
+				// O tema continua funcionando mesmo quando o armazenamento está bloqueado.
+			}
+		}
+
+		function updateClock() {
+			const now = new Date();
+			clock.dateTime = now.toISOString();
+			clock.textContent = new Intl.DateTimeFormat('pt-BR', {
+				hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+			}).format(now);
+			date.textContent = new Intl.DateTimeFormat('pt-BR', {
+				weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+			}).format(now);
+		}
+
+		let savedTheme = null;
+		try {
+			savedTheme = localStorage.getItem('relogio-tema');
+		} catch (error) {
+			// Usa a preferência do sistema se o armazenamento estiver bloqueado.
+		}
+		const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+		setTheme(savedTheme ? savedTheme === 'escuro' : prefersDark);
+		updateClock();
+		setInterval(updateClock, 250);
+		themeToggle.addEventListener('click', () => {
+			setTheme(!document.body.classList.contains('dark'));
+		});
+	</script>
+</body>
+</html>
